@@ -1,0 +1,7 @@
+{
+  "name": "Latent Studio v12",
+  "description": "A high-fidelity multi-agent orchestrator for latent space image and video manipulation, featuring domain separation (Structure, Texture, Lighting) and a collaborative specialist agent ecosystem.",
+  "requestFramePermissions": [
+    "geolocation"
+  ]
+}
