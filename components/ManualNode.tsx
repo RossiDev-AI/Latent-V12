@@ -55,7 +55,7 @@ const ManualNode: React.FC<ManualNodeProps> = ({ onSave }) => {
         setVaultDomain('X'); // Identity
       } else if (result.environment && result.environment.length > 5) {
         setVaultDomain('Y'); // Environment
-      } else if (result.technical_tags.some(t => t.toLowerCase().includes('light'))) {
+      } else if (result.technical_tags && result.technical_tags.some(t => t.toLowerCase().includes('light'))) {
         setVaultDomain('L'); // Lighting
       } else {
         setVaultDomain('Z'); // Style/Texture
@@ -179,7 +179,7 @@ const ManualNode: React.FC<ManualNodeProps> = ({ onSave }) => {
               ) : (
                 <div className="h-full flex flex-col items-center justify-center space-y-6">
                   <div className="w-20 h-20 bg-zinc-900 rounded-full flex items-center justify-center border border-white/5 group-hover:scale-110 transition-transform">
-                    <svg className="w-8 h-8 text-zinc-700" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" strokeWidth={1.5}/></svg>
+                    <svg className="w-8 h-8 text-zinc-700" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M4 16v1a3 3 0 003 3h10a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" strokeWidth={1.5}/></svg>
                   </div>
                   <div className="text-center space-y-2">
                     <p className="text-[11px] font-black uppercase tracking-[0.4em] text-zinc-600">Inject Reference Frame</p>
@@ -231,7 +231,7 @@ const ManualNode: React.FC<ManualNodeProps> = ({ onSave }) => {
                   <div className="grid grid-cols-1 gap-4">
                     <div className="p-5 rounded-3xl bg-white/5 border border-white/5 space-y-2">
                       <span className="text-[7px] font-black text-zinc-500 uppercase tracking-widest">Core Attribute</span>
-                      <p className="text-[10px] text-zinc-300 italic">"{dna.pose || dna.environment}"</p>
+                      <p className="text-[10px] text-zinc-300 italic">"{dna.pose || dna.environment || 'N/A'}"</p>
                     </div>
 
                     <div className="space-y-3">

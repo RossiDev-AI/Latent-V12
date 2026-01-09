@@ -1,12 +1,12 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import { executeGroundedSynth, optimizeVisualPrompt, routeSemanticAssets, suggestScoutWeights } from '../geminiService';
-import { LatentParams, AgentStatus, VaultItem, ScoutData, LatentGrading } from '../types';
+import { LatentParams, AgentStatus, VaultItem, ScoutData, LatentGrading, VisualAnchor } from '../types';
 import AgentFeed from './AgentFeed';
 import ScoutDashboard from './ScoutDashboard';
 
 interface CreationLabProps {
-  onResult: (imageUrl: string, params: LatentParams, prompt: string, links: any[], grading?: LatentGrading) => void;
+  onResult: (imageUrl: string, params: LatentParams, prompt: string, links: any[], grading?: LatentGrading, visualAnchor?: VisualAnchor) => void;
   params: LatentParams;
   setParams: (p: LatentParams) => void;
   onReset: () => void;
@@ -51,11 +51,11 @@ const CreationLab: React.FC<CreationLabProps> = ({ onResult, params, setParams, 
   const handleMagicWand = async () => {
     if (!prompt.trim() || isOptimizing) return;
     setIsOptimizing(true);
-    setLogs(prev => [...prev, { type: 'Meta-Prompt Translator', status: 'processing', message: 'Otimizando intenção visual v11.3...', timestamp: Date.now(), department: 'Advanced' }]);
+    setLogs(prev => [...prev, { type: 'Meta-Prompt Translator', status: 'processing', message: 'Otimizando intenção visual v12.0...', timestamp: Date.now(), department: 'Advanced' }]);
     try {
       const optimized = await optimizeVisualPrompt(prompt);
       setPrompt(optimized);
-      setLogs(prev => [...prev, { type: 'Meta-Prompt Translator', status: 'completed', message: 'Refinamento neural concluído.', timestamp: Date.now(), department: 'Advanced' }]);
+      setLogs(prev => [...prev, { type: 'Meta-Prompt Translator', status: 'completed', message: 'Refinamento neural V12 concluído.', timestamp: Date.now(), department: 'Advanced' }]);
     } catch (e) { console.error(e); } finally { setIsOptimizing(false); }
   };
 
@@ -75,14 +75,14 @@ const CreationLab: React.FC<CreationLabProps> = ({ onResult, params, setParams, 
     if (!prompt.trim()) return;
     setIsProcessing(true);
     setScoutData(null);
-    setLogs([{ type: 'Semantic Router', status: 'processing', message: `Iniciando síntese multi-camada v11.3...`, timestamp: Date.now() }]);
+    setLogs([{ type: 'Semantic Router', status: 'processing', message: `Iniciando síntese multi-camada V12.0...`, timestamp: Date.now() }]);
     
     try {
       const result = await executeGroundedSynth(prompt, weights, vault);
       if (result.imageUrl) {
         setScoutData(result.scoutData || null);
         setGroundingLinks(result.groundingLinks || []);
-        onResult(result.imageUrl, result.params, prompt, result.groundingLinks || [], result.grading);
+        onResult(result.imageUrl, result.params, prompt, result.groundingLinks || [], result.grading, result.visual_anchor);
       }
     } catch (e) { console.error(e); } finally { setIsProcessing(false); }
   };
@@ -99,7 +99,7 @@ const CreationLab: React.FC<CreationLabProps> = ({ onResult, params, setParams, 
           <div className="flex justify-between items-start">
             <div className="flex flex-col gap-2">
                <h2 className="text-4xl font-black text-white uppercase tracking-tighter">Nexus Creation Hub</h2>
-               <p className="text-[10px] mono text-zinc-500 uppercase tracking-[0.5em]">LCP-v11.3 GROUNDED PEXELS SYNTHESIS</p>
+               <p className="text-[10px] mono text-zinc-500 uppercase tracking-[0.5em]">LCP-v12.0 INDUSTRIAL CORE</p>
             </div>
             <button 
               onClick={handleHardReset}
@@ -128,7 +128,7 @@ const CreationLab: React.FC<CreationLabProps> = ({ onResult, params, setParams, 
                    <textarea 
                       value={prompt}
                       onChange={(e) => setPrompt(e.target.value)}
-                      placeholder="Specify your visual intent (Pexels grounded)..."
+                      placeholder="Specify your visual intent (Truth Visual Sync)..."
                       className="w-full h-40 bg-black/50 border border-white/5 rounded-3xl p-6 text-[13px] text-white focus:outline-none focus:border-indigo-500/30 resize-none transition-all placeholder:text-zinc-800"
                    />
                 </div>
@@ -184,7 +184,7 @@ const CreationLab: React.FC<CreationLabProps> = ({ onResult, params, setParams, 
                    <label className="text-[9px] font-black text-zinc-500 uppercase tracking-widest">Anchor Reference</label>
                    <div onClick={() => fileRef.current?.click()} className="flex-1 min-h-[200px] bg-black/40 border-2 border-dashed border-white/5 rounded-[2.5rem] flex flex-col items-center justify-center cursor-pointer hover:border-indigo-500/40 hover:bg-indigo-500/5 transition-all relative overflow-hidden group">
                      <div className="text-center space-y-3 opacity-30">
-                        <svg className="w-12 h-12 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" strokeWidth={1}/></svg>
+                        <svg className="w-12 h-12 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M4 16v1a3 3 0 003 3h10a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" strokeWidth={1}/></svg>
                         <p className="text-[9px] font-black uppercase tracking-widest">Inject Base DNA</p>
                      </div>
                      <input type="file" ref={fileRef} className="hidden" accept="image/*" />
@@ -194,7 +194,7 @@ const CreationLab: React.FC<CreationLabProps> = ({ onResult, params, setParams, 
                     disabled={isProcessing || !prompt.trim()}
                     className="w-full py-10 bg-indigo-600 hover:bg-indigo-500 text-white rounded-[2rem] font-black uppercase tracking-[0.8em] text-[11px] shadow-2xl active:scale-95 transition-all relative overflow-hidden"
                    >
-                    {isProcessing ? 'SYNAPSING...' : 'EXECUTE GROUNDED SYNTH'}
+                    {isProcessing ? 'SYNAPSING...' : 'EXECUTE GROUNDED SYNTH V12'}
                    </button>
                 </div>
              </div>

@@ -30,6 +30,12 @@ export type ProcessingSpeed = 'Fast' | 'Balanced' | 'Deliberate' | 'Debug';
 
 export type WarpMethod = 'affine' | 'thin_plate' | 'deformation';
 
+export interface VisualAnchor {
+  primary_color: string;
+  light_direction: string;
+  focal_length: string;
+}
+
 export interface LatentGrading {
   brightness: number; // Exposure
   contrast: number;   // Dynamic Range
@@ -168,6 +174,7 @@ export interface ProcessResponse {
   groundingLinks?: { title: string; uri: string }[];
   pexels_query?: string;
   grading?: LatentGrading;
+  visual_anchor?: VisualAnchor;
 }
 
 export interface ScoutCandidate {

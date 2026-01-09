@@ -1,9 +1,10 @@
 
 import React, { useState, useRef, useEffect } from 'react';
-import { AgentStatus, LatentParams, VaultItem, CategorizedDNA, VaultDomain, LatentGrading } from '../types';
-import { orchestratePrompt, extractDeepDNA, routeSemanticAssets } from '../geminiService';
+import { AgentStatus, LatentParams, VaultItem, CategorizedDNA, VaultDomain, LatentGrading, VisualAnchor } from '../types';
+import { orchestratePrompt, extractDeepDNA } from '../geminiService';
 import AgentFeed from './AgentFeed';
 import ZModeModal from './ZModeModal';
+import LGNEditor from './LGNEditor';
 import MetricsDashboard from './MetricsDashboard';
 import ProcessingControl from './ProcessingControl';
 
@@ -22,30 +23,35 @@ interface WorkspaceProps {
   setParams: React.Dispatch<React.SetStateAction<LatentParams>>;
   onReloadApp: () => void;
   grading?: LatentGrading;
+  visualAnchor?: VisualAnchor;
 }
 
 const Workspace: React.FC<WorkspaceProps> = ({ 
   onSave, vault, prompt, setPrompt, currentImage, setCurrentImage,
   originalSource, setOriginalSource, logs, setLogs, params, setParams,
-  onReloadApp, grading
+  onReloadApp, grading: initialGrading, visualAnchor
 }) => {
   const [isProcessing, setIsProcessing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [loadingStep, setLoadingStep] = useState(0);
   const [isZModeOpen, setIsZModeOpen] = useState(false);
+  const [isLGNOpen, setIsLGNOpen] = useState(false);
   const [isBiopsyActive, setIsBiopsyActive] = useState(false);
-  const [routingReasoning, setRoutingReasoning] = useState('');
   const [collisionReport, setCollisionReport] = useState<{logic: string, prompt: string} | null>(null);
-  const [hoveredSlot, setHoveredSlot] = useState<VaultDomain | null>(null);
+  const [localGrading, setLocalGrading] = useState<LatentGrading | undefined>(initialGrading);
   
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const loadingMessages = [
-    "Step 1: Identifying Favorites & Identity Locks...", 
-    "Step 2: Activating Neural Puppeteer (Horizon Sync)...", 
-    "Step 3: LGN Injecting Post-Prod CSS Stack...", 
-    "Step 4: Lighting Lead Projecting HDR Photons..."
+    "Step 1: Identifying DNA Hierarchy (ARCHITECT_MODE)...", 
+    "Step 2: Activating Strict Preservation Locks...", 
+    "Step 3: Visual Scout v12 Syncing Optical truth...", 
+    "Step 4: LGN Finalizing Optical Pós-Production..."
   ];
+
+  useEffect(() => {
+    setLocalGrading(initialGrading);
+  }, [initialGrading]);
 
   useEffect(() => {
     let interval: any;
@@ -69,7 +75,7 @@ const Workspace: React.FC<WorkspaceProps> = ({
         setCurrentImage(result);
         setOriginalSource(result);
         setIsBiopsyActive(true);
-        setLogs([{ type: 'Attribute Mapper', status: 'processing', message: 'V11.13 Spec Biopsy initialized...', timestamp: Date.now(), department: 'Advanced' }]);
+        setLogs([{ type: 'Attribute Mapper', status: 'processing', message: 'V12.0.0 Spec Biopsy initialized...', timestamp: Date.now(), department: 'Advanced' }]);
         try {
           const dna = await extractDeepDNA(result);
           setParams(prev => ({ ...prev, dna }));
@@ -83,7 +89,7 @@ const Workspace: React.FC<WorkspaceProps> = ({
   const handleProcess = async () => {
     if (!prompt.trim() || !currentImage) return;
     setIsProcessing(true);
-    setLogs([{ type: 'Vault Kernel', status: 'processing', message: 'Initiating Job V11.13 Execution...', timestamp: Date.now(), department: 'Direction' }]);
+    setLogs([{ type: 'Vault Kernel', status: 'processing', message: 'Initiating Job V12.0.0 Execution...', timestamp: Date.now(), department: 'Direction' }]);
     try {
       let result = await orchestratePrompt(prompt, currentImage, params, vault);
       if (result.imageUrl) {
@@ -91,13 +97,14 @@ const Workspace: React.FC<WorkspaceProps> = ({
         setLogs(result.logs);
         setParams(result.params);
         setCollisionReport({ logic: result.collision_logic || '', prompt: result.consolidated_prompt || '' });
+        if (result.grading) setLocalGrading(result.grading);
       }
     } catch (error: any) { console.error(error); } finally { setIsProcessing(false); }
   };
 
   const handlePurgeBuffer = () => {
     setCollisionReport(null);
-    setRoutingReasoning('');
+    setLocalGrading(undefined);
     onReloadApp();
   };
 
@@ -121,10 +128,10 @@ const Workspace: React.FC<WorkspaceProps> = ({
         neuralPreferenceScore: 50,
         isFavorite: false,
         vaultDomain: params.vault_domain || 'X',
-        grading: grading
+        grading: localGrading
       };
       await onSave(item);
-      window.alert(`V11.13 Node committed with LGN Config.`);
+      window.alert(`V12.0.0 Node committed with LGN Config.`);
     } catch (e: any) { console.error(e); } finally { setIsSaving(false); }
   };
 
@@ -143,11 +150,7 @@ const Workspace: React.FC<WorkspaceProps> = ({
     const item = vault.find(v => v.shortId === activeId);
     
     return (
-      <div 
-        className={`relative flex flex-col items-center gap-1 group`}
-        onMouseEnter={() => setHoveredSlot(domain)}
-        onMouseLeave={() => setHoveredSlot(null)}
-      >
+      <div className={`relative flex flex-col items-center gap-1 group`}>
         <div 
           className={`w-12 h-12 md:w-16 md:h-16 rounded-xl border-2 transition-all cursor-pointer overflow-hidden bg-black/40 flex items-center justify-center ${item ? `border-${color}-500 shadow-[0_0_15px_rgba(255,255,255,0.1)]` : 'border-white/5 hover:border-white/20'}`}
           onClick={() => setSlot(domain, null)}
@@ -195,14 +198,22 @@ const Workspace: React.FC<WorkspaceProps> = ({
                 <img 
                   src={currentImage!} 
                   className={`max-w-full max-h-full w-auto h-auto object-contain pointer-events-none transition-all duration-1000 shadow-2xl`}
-                  style={{ filter: grading?.css_filter_string || 'none' }}
+                  style={{ filter: localGrading?.css_filter_string || 'none' }}
                 />
                 
-                {grading && grading.preset_name !== 'NONE' && (
-                  <div className="absolute top-8 left-8 bg-indigo-600/20 backdrop-blur-md px-4 py-2 rounded-xl border border-indigo-500/30">
-                    <span className="text-[8px] font-black text-indigo-400 uppercase tracking-widest">LGN Preset: {grading.preset_name}</span>
-                  </div>
-                )}
+                <div className="absolute top-8 left-8 flex flex-col gap-2">
+                    {localGrading && (
+                       <div className="bg-indigo-600/20 backdrop-blur-md px-4 py-2 rounded-xl border border-indigo-500/30">
+                          <span className="text-[8px] font-black text-indigo-400 uppercase tracking-widest">LGN Master Active</span>
+                       </div>
+                    )}
+                    {visualAnchor && (
+                      <div className="bg-black/60 backdrop-blur-md px-3 py-2 rounded-xl border border-white/5 flex flex-col">
+                        <span className="text-[6px] font-black text-zinc-500 uppercase tracking-tighter">Visual Anchor</span>
+                        <span className="text-[8px] font-bold text-white uppercase">{visualAnchor.focal_length} | {visualAnchor.light_direction}</span>
+                      </div>
+                    )}
+                </div>
 
                 <div className="absolute bottom-8 left-1/2 -translate-x-1/2 flex gap-4 bg-black/80 backdrop-blur-3xl p-4 rounded-[2.5rem] border border-white/10 z-[150] shadow-2xl">
                    {renderSlot('X', 'Identity', 'emerald')}
@@ -219,7 +230,7 @@ const Workspace: React.FC<WorkspaceProps> = ({
             <div className="flex items-center justify-between">
               <div className="flex flex-col">
                 <h2 className="text-[9px] font-black uppercase tracking-widest text-zinc-600">Fusion Station</h2>
-                <span className="text-[7px] mono text-zinc-800 uppercase font-black">LCP-v11.13 MAESTRO_CORE</span>
+                <span className="text-[7px] mono text-zinc-800 uppercase font-black">LCP-v12.2 INDUSTRIAL</span>
               </div>
               <div className="flex gap-2">
                 <button 
@@ -228,7 +239,13 @@ const Workspace: React.FC<WorkspaceProps> = ({
                 >
                   RESET
                 </button>
-                <button onClick={() => setIsZModeOpen(true)} className="bg-indigo-600/10 px-3 py-1.5 rounded-lg text-indigo-400 text-[8px] font-black uppercase tracking-widest border border-indigo-500/30">Z-MODE</button>
+                <button onClick={() => setIsZModeOpen(true)} className="bg-indigo-600/10 px-3 py-1.5 rounded-lg text-indigo-400 text-[8px] font-black uppercase tracking-widest border border-indigo-500/30 hover:bg-indigo-600/20 transition-all">Z-MODE</button>
+                <button 
+                  onClick={() => setIsLGNOpen(true)} 
+                  className={`px-3 py-1.5 rounded-lg text-[8px] font-black uppercase tracking-widest border transition-all ${localGrading ? 'bg-emerald-600/10 text-emerald-400 border-emerald-500/30 hover:bg-emerald-600/20' : 'bg-zinc-800 text-zinc-500 border-white/5'}`}
+                >
+                  LGN EDIT
+                </button>
               </div>
             </div>
 
@@ -239,14 +256,14 @@ const Workspace: React.FC<WorkspaceProps> = ({
                      <p className="text-[10px] text-zinc-300 italic leading-relaxed uppercase">"{collisionReport.logic}"</p>
                   </div>
                   
-                  {grading && (
+                  {localGrading && (
                     <div className="bg-indigo-600/5 border border-indigo-500/20 p-5 rounded-2xl">
-                      <span className="text-[7px] font-black text-indigo-400 uppercase tracking-widest block mb-2">LGN Config Block</span>
+                      <span className="text-[7px] font-black text-indigo-400 uppercase tracking-widest block mb-2">LGN Spectrum Report</span>
                       <div className="grid grid-cols-2 gap-2 text-[8px] mono text-zinc-500 uppercase">
-                        <div>Brightness: {grading.brightness}</div>
-                        <div>Contrast: {grading.contrast}</div>
-                        <div>Saturation: {grading.saturation}</div>
-                        <div>Sharpness: {grading.sharpness}</div>
+                        <div>EXP: {localGrading.brightness}</div>
+                        <div>DYN: {localGrading.contrast}</div>
+                        <div>CHR: {localGrading.saturation}</div>
+                        <div>HAZ: {localGrading.blur}px</div>
                       </div>
                     </div>
                   )}
@@ -265,7 +282,7 @@ const Workspace: React.FC<WorkspaceProps> = ({
           </div>
           <div className="absolute bottom-0 left-0 right-0 p-4 md:p-8 bg-black/95 backdrop-blur-3xl border-t border-white/5 space-y-3 z-[100]">
             <div className="relative">
-               <textarea value={prompt} onChange={(e) => setPrompt(e.target.value)} placeholder="Execute V11.13 synthesis directive..." className="w-full bg-zinc-900/50 border border-white/5 rounded-xl px-4 py-3 text-[10px] md:text-sm h-16 md:h-24 resize-none text-zinc-200 outline-none pr-12 focus:border-indigo-500/40 transition-all custom-scrollbar" />
+               <textarea value={prompt} onChange={(e) => setPrompt(e.target.value)} placeholder="Execute V12.2 synthesis directive..." className="w-full bg-zinc-900/50 border border-white/5 rounded-xl px-4 py-3 text-[10px] md:text-sm h-16 md:h-24 resize-none text-zinc-200 outline-none pr-12 focus:border-indigo-500/40 transition-all custom-scrollbar" />
                <button onClick={handleProcess} disabled={isProcessing || !prompt.trim()} className={`absolute bottom-3 right-3 p-2 rounded-lg border transition-all ${isProcessing ? 'bg-indigo-600/40 border-indigo-400 animate-pulse' : 'bg-white/5 border-white/10 text-indigo-400 hover:bg-white/10'}`} >
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-7.714 2.143L11 21l-2.286-6.857L1 12l7.714-2.143L11 3z" strokeWidth={2}/></svg>
                </button>
@@ -277,7 +294,17 @@ const Workspace: React.FC<WorkspaceProps> = ({
           </div>
         </div>
       </div>
+      
       <ZModeModal isOpen={isZModeOpen} onClose={() => setIsZModeOpen(false)} params={params} setParams={setParams} onAutoTune={() => {}} />
+      
+      {localGrading && (
+        <LGNEditor 
+          isOpen={isLGNOpen} 
+          onClose={() => setIsLGNOpen(false)} 
+          grading={localGrading} 
+          onChange={(next) => setLocalGrading(next)} 
+        />
+      )}
     </div>
   );
 };

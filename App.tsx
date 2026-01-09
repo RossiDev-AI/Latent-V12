@@ -6,7 +6,8 @@ import ManualNode from './components/ManualNode';
 import FusionLab from './components/FusionLab';
 import CinemaLab from './components/CinemaLab';
 import CreationLab from './components/CreationLab';
-import { VaultItem, AgentStatus, LatentParams, LatentGrading } from './types';
+import GradingLab from './components/GradingLab';
+import { VaultItem, AgentStatus, LatentParams, LatentGrading, VisualAnchor } from './types';
 import { getAllNodes, saveNode, deleteNode } from './dbService';
 
 const DEFAULT_PARAMS: LatentParams = {
@@ -28,7 +29,7 @@ const DEFAULT_PARAMS: LatentParams = {
 };
 
 const App: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<'creation' | 'workspace' | 'vault' | 'manual' | 'fusion' | 'cinema'>('creation');
+  const [activeTab, setActiveTab] = useState<'creation' | 'workspace' | 'vault' | 'manual' | 'fusion' | 'cinema' | 'grading'>('creation');
   const [vaultItems, setVaultItems] = useState<VaultItem[]>([]);
   const [studioPrompt, setStudioPrompt] = useState('');
   const [studioCurrentImage, setStudioCurrentImage] = useState<string | null>(null);
@@ -37,6 +38,7 @@ const App: React.FC = () => {
   const [studioParams, setStudioParams] = useState<LatentParams>({ ...DEFAULT_PARAMS });
   const [studioGroundingLinks, setStudioGroundingLinks] = useState<{title: string, uri: string}[]>([]);
   const [studioGrading, setStudioGrading] = useState<LatentGrading | undefined>(undefined);
+  const [studioVisualAnchor, setStudioVisualAnchor] = useState<VisualAnchor | undefined>(undefined);
   const [isDbLoaded, setIsDbLoaded] = useState(false);
   const [hasInitError, setHasInitError] = useState(false);
 
@@ -59,12 +61,13 @@ const App: React.FC = () => {
     });
   }, [fetchVault]);
 
-  const handleCreationResult = (imageUrl: string, params: LatentParams, prompt: string, links: any[], grading?: LatentGrading) => {
+  const handleCreationResult = (imageUrl: string, params: LatentParams, prompt: string, links: any[], grading?: LatentGrading, visualAnchor?: VisualAnchor) => {
     setStudioCurrentImage(imageUrl);
     setStudioParams(params);
     setStudioPrompt(prompt);
     setStudioGroundingLinks(links);
     setStudioGrading(grading);
+    setStudioVisualAnchor(visualAnchor);
     setStudioOriginalSource(null);
     setActiveTab('workspace');
   };
@@ -75,13 +78,22 @@ const App: React.FC = () => {
     setStudioLogs(logs);
     setStudioOriginalSource(null);
     setStudioGrading(undefined);
+    setStudioVisualAnchor(undefined);
     setActiveTab('workspace');
   };
 
   const handleSaveToVault = useCallback(async (item: VaultItem) => {
     try {
       await saveNode(item);
-      setVaultItems(prev => [item, ...prev]);
+      setVaultItems(prev => {
+        const index = prev.findIndex(i => i.id === item.id);
+        if (index !== -1) {
+          const updated = [...prev];
+          updated[index] = item;
+          return updated;
+        }
+        return [item, ...prev];
+      });
     } catch (e) {
       console.error("Failed to index node:", e);
     }
@@ -103,6 +115,7 @@ const App: React.FC = () => {
     setStudioPrompt(item.prompt);
     setStudioLogs(item.agentHistory || []);
     setStudioGrading(item.grading);
+    setStudioVisualAnchor(undefined);
     setActiveTab('workspace');
   };
 
@@ -114,6 +127,7 @@ const App: React.FC = () => {
     setStudioParams({ ...DEFAULT_PARAMS });
     setStudioGroundingLinks([]);
     setStudioGrading(undefined);
+    setStudioVisualAnchor(undefined);
   }, []);
 
   if (hasInitError) {
@@ -151,13 +165,14 @@ const App: React.FC = () => {
           </div>
           <div className="flex flex-col">
             <h1 className="text-xs md:text-lg font-black tracking-tighter uppercase leading-none">Latent Cinema</h1>
-            <span className="text-[7px] md:text-[10px] text-indigo-500 font-bold uppercase tracking-widest">Nexus v2.5</span>
+            <span className="text-[7px] md:text-[10px] text-indigo-500 font-bold uppercase tracking-widest">Nexus v3.0 Industrial Core</span>
           </div>
         </div>
 
         <nav className="hidden md:flex bg-zinc-900/50 p-1 rounded-full border border-white/5 gap-1 shadow-2xl">
           <NavItem id="creation" label="Creation" />
           <NavItem id="workspace" label="Studio" />
+          <NavItem id="grading" label="Grading" />
           <NavItem id="cinema" label="Cinema" />
           <NavItem id="fusion" label="Fusion" />
           <NavItem id="manual" label="Indexer" />
@@ -165,7 +180,7 @@ const App: React.FC = () => {
         </nav>
 
         <div className="md:hidden flex items-center gap-2">
-            <div className="px-1.5 py-0.5 rounded bg-white/5 border border-white/10 text-[7px] mono text-zinc-500 uppercase">Nexus: Active</div>
+            <div className="px-1.5 py-0.5 rounded bg-white/5 border border-white/10 text-[7px] mono text-zinc-500 uppercase">Kernel: V12 Active</div>
         </div>
       </header>
 
@@ -191,7 +206,13 @@ const App: React.FC = () => {
                 currentImage={studioCurrentImage} setCurrentImage={setStudioCurrentImage} 
                 originalSource={studioOriginalSource} setOriginalSource={setStudioOriginalSource}
                 logs={studioLogs} setLogs={setStudioLogs} params={studioParams} setParams={setStudioParams}
-                onReloadApp={executeHardReset} grading={studioGrading}
+                onReloadApp={executeHardReset} grading={studioGrading} visualAnchor={studioVisualAnchor}
+              />
+            )}
+            {activeTab === 'grading' && (
+              <GradingLab 
+                vault={vaultItems}
+                onSave={handleSaveToVault}
               />
             )}
             {activeTab === 'cinema' && <CinemaLab vault={vaultItems} onSave={handleSaveToVault} currentSourceImage={studioCurrentImage} />}
@@ -205,9 +226,9 @@ const App: React.FC = () => {
       <nav className="md:hidden fixed bottom-0 left-0 right-0 z-[400] bg-black/90 backdrop-blur-xl border-t border-white/10 h-16 flex items-center justify-around px-1 shadow-2xl">
         <NavItem id="creation" label="Creation" icon={<svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" strokeWidth={2}/></svg>} />
         <NavItem id="workspace" label="Studio" icon={<svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" strokeWidth={2}/></svg>} />
+        <NavItem id="grading" label="Grading" icon={<svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485" strokeWidth={2}/></svg>} />
         <NavItem id="cinema" label="Cinema" icon={<svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" strokeWidth={2}/></svg>} />
         <NavItem id="fusion" label="Fusion" icon={<svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86 1.412l-1.874 1.318" strokeWidth={2}/></svg>} />
-        <NavItem id="manual" label="Indexer" icon={<svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M12 4v16m8-8H4" strokeWidth={2}/></svg>} />
         <NavItem id="vault" label="Vault" icon={<svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" strokeWidth={2}/></svg>} />
       </nav>
     </div>
